@@ -1,0 +1,120 @@
+<!doctype html>
+<html>
+  <head>
+    <title>kloner - A tiny, dependency-free JavaScript module for cloning/repeating elements.</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-fork-ribbon-css/0.2.3/gh-fork-ribbon.min.css" />
+    <style type="text/css">
+      body {
+        background-color: #e9ecef;
+      }
+
+      a {
+        color: #5185b3;
+        text-decoration: underline;
+      }
+
+      .github-fork-ribbon:before {
+        background-color: #5185b3;
+      }
+
+      footer {
+        padding: 4rem 0;
+      }
+
+      .container {
+        text-align: center;
+      }
+
+      #main .container {
+        background-color: #ffffff;
+        padding: 4rem 2rem;
+      }
+
+      .people-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+      }
+
+      .person {
+        background-color: #e9ecef;
+        border-radius: 10px;
+        padding: 1rem;
+        width: calc(25% - 0.75rem);
+      }
+
+      .people-grid .btn-primary {
+        width: calc(25% - 0.75rem);
+      }
+
+      fieldset {
+        margin: 1rem 0;
+      }
+
+      label {
+        display: block;
+      }
+
+      input[type="number"] {
+        width: 50px;
+      }
+    </style>
+    <script type="text/javascript" src="dist/kloner.min.js"></script>
+    <script type="text/javascript">
+      window.addEventListener('load', function () {
+        kloner()
+      })
+    </script>
+  </head>
+  <body>
+    <a class="github-fork-ribbon" href="https://github.com/kodie/kloner" data-ribbon="Check me out on GitHub" title="Check me out on GitHub">Check me out on GitHub</a>
+
+    <div class="jumbotron jumbotron-fluid">
+      <div class="container">
+        <h1 class="display-4">kloner</h1>
+        <p class="lead">A tiny, dependency-free JavaScript module for cloning/repeating elements.</p>
+        <p><a href="https://github.com/kodie/kloner" target="_blank">https://github.com/kodie/kloner</a></p>
+      </div>
+    </div>
+
+    <div id="main">
+      <div class="container btns">
+        <div>Number of people: <span data-kloner-count="people">1</span></div>
+        <br />
+        <button type="button" class="btn btn-primary" data-kloner-add="people">Add Person</button>
+        <button type="button" class="btn btn-primary" data-kloner-remove="people">Remove Person</button>
+      </div>
+
+      <div id="people" class="container people-grid kloner" data-kloner-child-selector=".person">
+        <div class="person">
+          <p>Person #{kloner-number}</p>
+          <fieldset>
+            <label for="people[{kloner-index}][first_name]">First Name</label>
+            <input type="text" id="people[{kloner-index}][first_name]" name="people[{kloner-index}][first_name]" />
+          </fieldset>
+
+          <fieldset>
+            <label for="people[{kloner-index}][last_name]">Last Name</label>
+            <input type="text" id="people[{kloner-index}][last_name]" name="people[{kloner-index}][last_name]" />
+          </fieldset>
+
+          <fieldset>
+            <label for="people[{kloner-index}][age]">Age</label>
+            <input type="number" id="people[{kloner-index}][age]" name="people[{kloner-index}][age]" min="1" max="99" />
+          </fieldset>
+
+          <button type="button" class="btn btn-danger" data-kloner-remove>Remove Person</button>
+        </div>
+
+        <button type="button" class="btn btn-primary" data-kloner-add>Add Person</button>
+      </div>
+    </div>
+
+    <footer class="footer">
+      <div class="container">
+        <span class="text-muted">&copy; 2023 <a href="https://kodieg.com" target="_blank">Kodie Grantham</a></span>
+      </div>
+    </footer>
+  </body>
+</html>

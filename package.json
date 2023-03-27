@@ -1,0 +1,53 @@
+{
+  "name": "kloner",
+  "version": "0.0.1",
+  "description": "A tiny, dependency-free JavaScript module for cloning/repeating elements.",
+  "keywords": [
+    "clone",
+    "dynamic",
+    "javascript",
+    "js",
+    "no-jquery",
+    "repeat",
+    "vanilla"
+  ],
+  "author": {
+    "name": "Kodie Grantham",
+    "email": "kodie.grantham@gmail.com",
+    "url": "https://kodieg.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kodie/kloner.git"
+  },
+  "bugs": {
+    "url": "https://github.com/kodie/kloner/issues"
+  },
+  "homepage": "https://kloner.js.org",
+  "license": "MIT",
+  "main": "dist/kloner.js",
+  "module": "src/kloner.js",
+  "files": [
+    "dist/*",
+    "src/*"
+  ],
+  "scripts": {
+    "build": "npm run test && npm run build-js && npm run minify-js",
+    "build-js": "rollup --config rollup.config.js",
+    "minify-js": "uglifyjs dist/kloner.js --comments /^!/ --compress --mangle --output dist/kloner.min.js --source-map \"url='kloner.min.js.map'\"",
+    "test": "standard --env browser"
+  },
+  "devDependencies": {
+    "@babel/preset-env": "^7.16.4",
+    "@rollup/plugin-babel": "^5.3.0",
+    "core-js": "^3.19.2",
+    "rollup": "^2.60.2",
+    "standard": "^16.0.4",
+    "uglify-js": "^3.10.4"
+  },
+  "standard": {
+    "ignore": [
+      "/dist/*"
+    ]
+  }
+}
