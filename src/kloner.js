@@ -136,18 +136,14 @@ kloner.add = (containerSelector, atIndex, options) => {
     containerSelector = null
   }
 
-  options = Object.assign({}, kloner.defaultOptions, options || {})
+  if (!containerSelector) containerSelector = kloner.defaultOptions.containerSelector
 
-  if (containerSelector) {
-    options.containerSelector = containerSelector
-  }
-
-  const containers = kloner.getInstances(options.containerSelector, true)
+  const containers = kloner.getInstances(containerSelector, true)
 
   if (containers && containers.length) {
     for (let i = 0; i < containers.length; i++) {
       (function (container) {
-        const opts = Object.assign({}, options, options.kloner, kloner.getAttributeOptions(container))
+        const opts = Object.assign({}, container.kloner, kloner.getAttributeOptions(container), options)
         const count = container.klonerCount
 
         if (opts.max && count >= parseInt(opts.max)) {
@@ -363,18 +359,14 @@ kloner.remove = (containerSelector, atIndex, options) => {
     containerSelector = null
   }
 
-  options = Object.assign({}, kloner.defaultOptions, options || {})
+  if (!containerSelector) containerSelector = kloner.defaultOptions.containerSelector
 
-  if (containerSelector) {
-    options.containerSelector = containerSelector
-  }
-
-  const containers = kloner.getInstances(options.containerSelector, true)
+  const containers = kloner.getInstances(containerSelector, true)
 
   if (containers && containers.length) {
     for (let i = 0; i < containers.length; i++) {
       (function (container) {
-        const opts = Object.assign({}, options, options.kloner, kloner.getAttributeOptions(container))
+        const opts = Object.assign({}, container.kloner, kloner.getAttributeOptions(container), options)
         const count = container.klonerCount
 
         if (count <= 0 || (opts.min && count <= parseInt(opts.min))) {
