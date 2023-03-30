@@ -39,6 +39,7 @@ const kloner = (containerSelector, childSelector, options) => {
         }
 
         const opts = Object.assign({}, options, kloner.getAttributeOptions(container), funcs)
+        let data = {} // eslint-disable-line prefer-const
 
         if (opts.template) {
           const templateContainer = document.createElement(null)
@@ -48,8 +49,8 @@ const kloner = (containerSelector, childSelector, options) => {
           const templateElement = templateContainer.firstElementChild
           const template = templateElement.cloneNode(true)
 
-          container.klonerTemplate = template
-          container.klonerTemplateIndex = 0
+          data.template = template
+          data.templateIndex = 0
 
           templateContainer.remove()
         } else {
@@ -62,8 +63,8 @@ const kloner = (containerSelector, childSelector, options) => {
 
           const template = templateElement.cloneNode(true)
 
-          container.klonerTemplate = template
-          container.klonerTemplateIndex = Array.prototype.indexOf.call(container.children, templateElement)
+          data.template = template
+          data.templateIndex = Array.prototype.indexOf.call(container.children, templateElement)
 
           if (templateElement.matches('[data-kloner-template]')) {
             templateElement.remove()
@@ -80,8 +81,10 @@ const kloner = (containerSelector, childSelector, options) => {
           }))
         }
 
+        data.count = count
+        data.constCount = count
         container.kloner = opts
-        container.klonerCount = count
+        container.klonerData = data
 
         kloner.initializeTriggers(container)
 
@@ -89,7 +92,7 @@ const kloner = (containerSelector, childSelector, options) => {
           let extraChildren = opts.start
 
           if (!Array.isArray(extraChildren) && Number.isInteger(parseInt(extraChildren))) {
-            extraChildren = Array((parseInt(extraChildren) - container.klonerCount) || 0).fill({})
+            extraChildren = Array((parseInt(extraChildren) - container.klonerData.count) || 0).fill({})
           }
 
           if (Array.isArray(extraChildren)) {
@@ -99,14 +102,14 @@ const kloner = (containerSelector, childSelector, options) => {
           }
         }
 
-        if (opts.min && container.klonerCount < parseInt(opts.min)) {
-          for (let k = 0; k < (parseInt(opts.min) - container.klonerCount); k++) {
+        if (opts.min && container.klonerData.count < parseInt(opts.min)) {
+          for (let k = 0; k < (parseInt(opts.min) - container.klonerData.count); k++) {
             opts.add()
           }
         }
 
-        if (opts.max && container.klonerCount > parseInt(opts.max)) {
-          for (let l = 0; l < (container.klonerCount - parseInt(opts.max)); l++) {
+        if (opts.max && container.klonerData.count > parseInt(opts.max)) {
+          for (let l = 0; l < (container.klonerData.count - parseInt(opts.max)); l++) {
             opts.remove()
           }
         }
@@ -144,25 +147,26 @@ kloner.add = (containerSelector, atIndex, options) => {
     for (let i = 0; i < containers.length; i++) {
       (function (container) {
         const opts = Object.assign({}, container.kloner, kloner.getAttributeOptions(container), options)
-        const count = container.klonerCount
+        const count = container.klonerData.count
+        const elementCount = opts.updateChildren ? count : container.klonerData.constCount
 
         if (opts.max && count >= parseInt(opts.max)) {
           return
         }
 
         const elements = container.querySelectorAll(opts.childSelector)
-        const element = container.klonerTemplate.cloneNode(true)
+        const element = container.klonerData.template.cloneNode(true)
 
         kloner.replaceParameters(element, Object.assign({}, opts.parameters || {}, {
-          index: count,
-          number: (count + 1)
+          index: elementCount,
+          number: (elementCount + 1)
         }))
 
         if (opts.beforeAdd && opts.beforeAdd(container, element, opts) === false) {
           return false
         }
 
-        const elementIndex = atIndex ?? elements.length ?? container.klonerTemplateIndex
+        const elementIndex = atIndex ?? elements.length ?? container.klonerData.templateIndex
 
         if (elementIndex) {
           if (elementIndex >= container.children.length) {
@@ -177,7 +181,12 @@ kloner.add = (containerSelector, atIndex, options) => {
           container.prepend(element)
         }
 
-        container.klonerCount++
+        container.klonerData.count++
+        container.klonerData.constCount++
+
+        if (opts.updateChildren) {
+          kloner.updateChildren(container)
+        }
 
         kloner.initializeTriggers(container)
 
@@ -191,8 +200,10 @@ kloner.add = (containerSelector, atIndex, options) => {
 
 kloner.defaultOptions = {
   afterAdd: null,
+  afterChildUpdate: null,
   afterRemove: null,
   beforeAdd: null,
+  beforeChildUpdate: null,
   beforeRemove: null,
   childSelector: '[data-kloner-template], :scope > *',
   containerSelector: '[data-kloner], .kloner',
@@ -200,7 +211,8 @@ kloner.defaultOptions = {
   min: 0,
   parameters: null,
   start: 0,
-  template: null
+  template: null,
+  updateChildren: false
 }
 
 kloner.getAttributeOptions = (containerSelector) => {
@@ -276,7 +288,7 @@ kloner.initializeTriggers = (containerSelector) => {
 
         if (addElements.length) {
           for (let j = 0; j < addElements.length; j++) {
-            if (!addElements[j].klonerTrigger) {
+            if (!addElements[j].klonerData || !addElements[j].klonerData.trigger) {
               addElements[j].addEventListener('click', function (e) {
                 let atIndex = null
 
@@ -291,7 +303,11 @@ kloner.initializeTriggers = (containerSelector) => {
                 container.kloner.add(atIndex, kloner.getAttributeOptions(addElements[j]))
               })
 
-              addElements[j].klonerTrigger = true
+              if (!addElements[j].klonerData) {
+                addElements[j].klonerData = {}
+              }
+
+              addElements[j].klonerData.trigger = true
             }
           }
         }
@@ -308,7 +324,7 @@ kloner.initializeTriggers = (containerSelector) => {
 
         if (removeElements.length) {
           for (let k = 0; k < removeElements.length; k++) {
-            if (!removeElements[k].klonerTrigger) {
+            if (!removeElements[k].klonerData || !removeElements[k].klonerData.trigger) {
               removeElements[k].addEventListener('click', function (e) {
                 let atIndex = null
 
@@ -323,7 +339,11 @@ kloner.initializeTriggers = (containerSelector) => {
                 container.kloner.remove(atIndex, kloner.getAttributeOptions(removeElements[k]))
               })
 
-              removeElements[k].klonerTrigger = true
+              if (!removeElements[k].klonerData) {
+                removeElements[k].klonerData = {}
+              }
+
+              removeElements[k].klonerData.trigger = true
             }
           }
         }
@@ -340,7 +360,7 @@ kloner.initializeTriggers = (containerSelector) => {
 
         if (countElements.length) {
           for (let l = 0; l < countElements.length; l++) {
-            countElements[l].textContent = container.klonerCount
+            countElements[l].textContent = container.klonerData.count
           }
         }
       })(containers[i])
@@ -367,7 +387,7 @@ kloner.remove = (containerSelector, atIndex, options) => {
     for (let i = 0; i < containers.length; i++) {
       (function (container) {
         const opts = Object.assign({}, container.kloner, kloner.getAttributeOptions(container), options)
-        const count = container.klonerCount
+        const count = container.klonerData.count
 
         if (count <= 0 || (opts.min && count <= parseInt(opts.min))) {
           return
@@ -389,7 +409,11 @@ kloner.remove = (containerSelector, atIndex, options) => {
 
         element.remove()
 
-        container.klonerCount--
+        container.klonerData.count--
+
+        if (opts.updateChildren) {
+          kloner.updateChildren(container)
+        }
 
         kloner.initializeTriggers(container)
 
@@ -402,7 +426,52 @@ kloner.remove = (containerSelector, atIndex, options) => {
 }
 
 kloner.replaceParameters = (element, parameters) => {
-  element.innerHTML = element.innerHTML.replaceAll(/\{kloner-(\w+)\}/g, (match, key) => parameters[key] ?? match)
+  if (!element.klonerData) {
+    element.klonerData = {}
+  }
+
+  if (!element.klonerData.initialContent) {
+    element.klonerData.initialContent = element.innerHTML
+  }
+
+  element.klonerData.parameters = Object.assign({}, element.klonerData.parameters, parameters || {})
+
+  element.innerHTML = element.klonerData.initialContent
+    .replaceAll(/\{kloner-(\w+)\}/g, (match, key) => element.klonerData.parameters[key] ?? match)
+}
+
+kloner.updateChildren = (containerSelector) => {
+  if (!containerSelector) containerSelector = kloner.defaultOptions.containerSelector
+
+  const containers = kloner.getInstances(containerSelector, true)
+
+  if (containers && containers.length) {
+    for (let i = 0; i < containers.length; i++) {
+      (function (container) {
+        const opts = container.kloner
+        const elements = container.querySelectorAll(opts.childSelector)
+
+        if (elements) {
+          for (let j = 0; j < elements.length; j++) {
+            const element = elements[j]
+
+            if (opts.beforeChildUpdate && opts.beforeChildUpdate(container, element, opts) === false) {
+              continue
+            }
+
+            kloner.replaceParameters(element, {
+              index: j,
+              number: (j + 1)
+            })
+
+            if (opts.afterChildUpdate) {
+              opts.afterChildUpdate(container, element, opts)
+            }
+          }
+        }
+      })(containers[i])
+    }
+  }
 }
 
 export default kloner

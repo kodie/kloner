@@ -98,8 +98,10 @@ window.addEventListener('load', function () {
 ```js
 {
   afterAdd: null,
+  afterChildUpdate: null,
   afterRemove: null,
   beforeAdd: null,
+  beforeChildUpdate: null,
   beforeRemove: null,
   childSelector: '[data-kloner-template], :scope > *',
   containerSelector: '[data-kloner], .kloner',
@@ -107,7 +109,8 @@ window.addEventListener('load', function () {
   min: 0,
   parameters: null,
   start: 0,
-  template: null
+  template: null,
+  updateChildren: false
 }
 ```
 
