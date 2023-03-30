@@ -5,7 +5,7 @@
 })(this, (function () { 'use strict';
 
   /*!
-    kloner v0.0.1 (https://kloner.js.org)
+    kloner v0.0.2 (https://kloner.js.org)
     by Kodie Grantham (https://kodieg.com)
   */
 
@@ -38,13 +38,15 @@
             }
           };
           var opts = Object.assign({}, options, kloner.getAttributeOptions(container), funcs);
+          var data = {}; // eslint-disable-line prefer-const
+
           if (opts.template) {
             var templateContainer = document.createElement(null);
             templateContainer.innerHTML = opts.template;
             var templateElement = templateContainer.firstElementChild;
             var template = templateElement.cloneNode(true);
-            container.klonerTemplate = template;
-            container.klonerTemplateIndex = 0;
+            data.template = template;
+            data.templateIndex = 0;
             templateContainer.remove();
           } else {
             var _templateElement = container.querySelector(opts.childSelector);
@@ -53,8 +55,8 @@
               return;
             }
             var _template = _templateElement.cloneNode(true);
-            container.klonerTemplate = _template;
-            container.klonerTemplateIndex = Array.prototype.indexOf.call(container.children, _templateElement);
+            data.template = _template;
+            data.templateIndex = Array.prototype.indexOf.call(container.children, _templateElement);
             if (_templateElement.matches('[data-kloner-template]')) {
               _templateElement.remove();
             }
@@ -67,13 +69,15 @@
               number: j + 1
             }));
           }
+          data.count = count;
+          data.constCount = count;
           container.kloner = opts;
-          container.klonerCount = count;
+          container.klonerData = data;
           kloner.initializeTriggers(container);
           if (opts.start) {
             var extraChildren = opts.start;
             if (!Array.isArray(extraChildren) && Number.isInteger(parseInt(extraChildren))) {
-              extraChildren = Array(parseInt(extraChildren) - container.klonerCount || 0).fill({});
+              extraChildren = Array(parseInt(extraChildren) - container.klonerData.count || 0).fill({});
             }
             if (Array.isArray(extraChildren)) {
               extraChildren.forEach(function (childParameters) {
@@ -83,13 +87,13 @@
               });
             }
           }
-          if (opts.min && container.klonerCount < parseInt(opts.min)) {
-            for (var k = 0; k < parseInt(opts.min) - container.klonerCount; k++) {
+          if (opts.min && container.klonerData.count < parseInt(opts.min)) {
+            for (var k = 0; k < parseInt(opts.min) - container.klonerData.count; k++) {
               opts.add();
             }
           }
-          if (opts.max && container.klonerCount > parseInt(opts.max)) {
-            for (var l = 0; l < container.klonerCount - parseInt(opts.max); l++) {
+          if (opts.max && container.klonerData.count > parseInt(opts.max)) {
+            for (var l = 0; l < container.klonerData.count - parseInt(opts.max); l++) {
               opts.remove();
             }
           }
@@ -113,30 +117,28 @@
       options = containerSelector;
       containerSelector = null;
     }
-    options = Object.assign({}, kloner.defaultOptions, options || {});
-    if (containerSelector) {
-      options.containerSelector = containerSelector;
-    }
-    var containers = kloner.getInstances(options.containerSelector, true);
+    if (!containerSelector) containerSelector = kloner.defaultOptions.containerSelector;
+    var containers = kloner.getInstances(containerSelector, true);
     if (containers && containers.length) {
       for (var i = 0; i < containers.length; i++) {
         (function (container) {
           var _ref, _atIndex;
-          var opts = Object.assign({}, options, options.kloner, kloner.getAttributeOptions(container));
-          var count = container.klonerCount;
+          var opts = Object.assign({}, container.kloner, kloner.getAttributeOptions(container), options);
+          var count = container.klonerData.count;
+          var elementCount = opts.updateChildren ? count : container.klonerData.constCount;
           if (opts.max && count >= parseInt(opts.max)) {
             return;
           }
           var elements = container.querySelectorAll(opts.childSelector);
-          var element = container.klonerTemplate.cloneNode(true);
+          var element = container.klonerData.template.cloneNode(true);
           kloner.replaceParameters(element, Object.assign({}, opts.parameters || {}, {
-            index: count,
-            number: count + 1
+            index: elementCount,
+            number: elementCount + 1
           }));
           if (opts.beforeAdd && opts.beforeAdd(container, element, opts) === false) {
             return false;
           }
-          var elementIndex = (_ref = (_atIndex = atIndex) !== null && _atIndex !== void 0 ? _atIndex : elements.length) !== null && _ref !== void 0 ? _ref : container.klonerTemplateIndex;
+          var elementIndex = (_ref = (_atIndex = atIndex) !== null && _atIndex !== void 0 ? _atIndex : elements.length) !== null && _ref !== void 0 ? _ref : container.klonerData.templateIndex;
           if (elementIndex) {
             if (elementIndex >= container.children.length) {
               container.append(element);
@@ -146,7 +148,11 @@
           } else {
             container.prepend(element);
           }
-          container.klonerCount++;
+          container.klonerData.count++;
+          container.klonerData.constCount++;
+          if (opts.updateChildren) {
+            kloner.updateChildren(container);
+          }
           kloner.initializeTriggers(container);
           if (opts.afterAdd) {
             opts.afterAdd(container, element, opts);
@@ -157,8 +163,10 @@
   };
   kloner.defaultOptions = {
     afterAdd: null,
+    afterChildUpdate: null,
     afterRemove: null,
     beforeAdd: null,
+    beforeChildUpdate: null,
     beforeRemove: null,
     childSelector: '[data-kloner-template], :scope > *',
     containerSelector: '[data-kloner], .kloner',
@@ -166,7 +174,8 @@
     min: 0,
     parameters: null,
     start: 0,
-    template: null
+    template: null,
+    updateChildren: false
   };
   kloner.getAttributeOptions = function (containerSelector) {
     if (!containerSelector) containerSelector = kloner.defaultOptions.containerSelector;
@@ -222,7 +231,7 @@
           }
           if (addElements.length) {
             var _loop = function _loop(j) {
-              if (!addElements[j].klonerTrigger) {
+              if (!addElements[j].klonerData || !addElements[j].klonerData.trigger) {
                 addElements[j].addEventListener('click', function (e) {
                   var atIndex = null;
                   if (!addElements[j].dataset.klonerAdd.length) {
@@ -233,7 +242,10 @@
                   }
                   container.kloner.add(atIndex, kloner.getAttributeOptions(addElements[j]));
                 });
-                addElements[j].klonerTrigger = true;
+                if (!addElements[j].klonerData) {
+                  addElements[j].klonerData = {};
+                }
+                addElements[j].klonerData.trigger = true;
               }
             };
             for (var j = 0; j < addElements.length; j++) {
@@ -246,7 +258,7 @@
           }
           if (removeElements.length) {
             var _loop2 = function _loop2(k) {
-              if (!removeElements[k].klonerTrigger) {
+              if (!removeElements[k].klonerData || !removeElements[k].klonerData.trigger) {
                 removeElements[k].addEventListener('click', function (e) {
                   var atIndex = null;
                   if (!removeElements[k].dataset.klonerRemove.length) {
@@ -257,7 +269,10 @@
                   }
                   container.kloner.remove(atIndex, kloner.getAttributeOptions(removeElements[k]));
                 });
-                removeElements[k].klonerTrigger = true;
+                if (!removeElements[k].klonerData) {
+                  removeElements[k].klonerData = {};
+                }
+                removeElements[k].klonerData.trigger = true;
               }
             };
             for (var k = 0; k < removeElements.length; k++) {
@@ -270,7 +285,7 @@
           }
           if (countElements.length) {
             for (var l = 0; l < countElements.length; l++) {
-              countElements[l].textContent = container.klonerCount;
+              countElements[l].textContent = container.klonerData.count;
             }
           }
         })(containers[i]);
@@ -286,17 +301,14 @@
       options = containerSelector;
       containerSelector = null;
     }
-    options = Object.assign({}, kloner.defaultOptions, options || {});
-    if (containerSelector) {
-      options.containerSelector = containerSelector;
-    }
-    var containers = kloner.getInstances(options.containerSelector, true);
+    if (!containerSelector) containerSelector = kloner.defaultOptions.containerSelector;
+    var containers = kloner.getInstances(containerSelector, true);
     if (containers && containers.length) {
       for (var i = 0; i < containers.length; i++) {
         (function (container) {
           var _atIndex2;
-          var opts = Object.assign({}, options, options.kloner, kloner.getAttributeOptions(container));
-          var count = container.klonerCount;
+          var opts = Object.assign({}, container.kloner, kloner.getAttributeOptions(container), options);
+          var count = container.klonerData.count;
           if (count <= 0 || opts.min && count <= parseInt(opts.min)) {
             return;
           }
@@ -311,7 +323,10 @@
             return false;
           }
           element.remove();
-          container.klonerCount--;
+          container.klonerData.count--;
+          if (opts.updateChildren) {
+            kloner.updateChildren(container);
+          }
           kloner.initializeTriggers(container);
           if (opts.afterRemove) {
             opts.afterRemove(container, element, opts);
@@ -321,10 +336,44 @@
     }
   };
   kloner.replaceParameters = function (element, parameters) {
-    element.innerHTML = element.innerHTML.replaceAll(/\{kloner-(\w+)\}/g, function (match, key) {
-      var _parameters$key;
-      return (_parameters$key = parameters[key]) !== null && _parameters$key !== void 0 ? _parameters$key : match;
+    if (!element.klonerData) {
+      element.klonerData = {};
+    }
+    if (!element.klonerData.initialContent) {
+      element.klonerData.initialContent = element.innerHTML;
+    }
+    element.klonerData.parameters = Object.assign({}, element.klonerData.parameters, parameters || {});
+    element.innerHTML = element.klonerData.initialContent.replaceAll(/\{kloner-(\w+)\}/g, function (match, key) {
+      var _element$klonerData$p;
+      return (_element$klonerData$p = element.klonerData.parameters[key]) !== null && _element$klonerData$p !== void 0 ? _element$klonerData$p : match;
     });
+  };
+  kloner.updateChildren = function (containerSelector) {
+    if (!containerSelector) containerSelector = kloner.defaultOptions.containerSelector;
+    var containers = kloner.getInstances(containerSelector, true);
+    if (containers && containers.length) {
+      for (var i = 0; i < containers.length; i++) {
+        (function (container) {
+          var opts = container.kloner;
+          var elements = container.querySelectorAll(opts.childSelector);
+          if (elements) {
+            for (var j = 0; j < elements.length; j++) {
+              var element = elements[j];
+              if (opts.beforeChildUpdate && opts.beforeChildUpdate(container, element, opts) === false) {
+                continue;
+              }
+              kloner.replaceParameters(element, {
+                index: j,
+                number: j + 1
+              });
+              if (opts.afterChildUpdate) {
+                opts.afterChildUpdate(container, element, opts);
+              }
+            }
+          }
+        })(containers[i]);
+      }
+    }
   };
 
   return kloner;

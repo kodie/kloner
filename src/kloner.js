@@ -1,5 +1,5 @@
 /*!
-  kloner v0.0.1 (https://kloner.js.org)
+  kloner v0.0.2 (https://kloner.js.org)
   by Kodie Grantham (https://kodieg.com)
 */
 
